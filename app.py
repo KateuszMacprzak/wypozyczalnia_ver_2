@@ -4,11 +4,12 @@ import sys
 from typing import List, Callable
 my_users={'matkac98@gmail.com':'Perla1998!','natjoz@gmail.com':'byleco','a':'b'}
 class Movie:
-    def __init__(self, id, title, year, rating):
+    def __init__(self, id, title, year, rating, price):
         self._id = id
         self._title = title
         self._year = year
         self._rating = rating
+        self._price = price
     @property
     def id(self):
         return int(self._id)
@@ -21,6 +22,9 @@ class Movie:
     @property
     def rating(self):
         return float(self._rating)
+    @property
+    def price(self):
+        return float(self._price)
     def __repr__(self):
         return f'{self._title} - {self._year}'
 class User:
@@ -33,6 +37,9 @@ class User:
     @property
     def password(self):
         return self._password
+
+    def __repr__(self):
+        return f'{self._nickname} - {self._password}'
 
 class RentalSystem:
     def __init__(self, movie_db, rent_db):
@@ -156,7 +163,8 @@ def menu():
             movie_title = input("Wpisz tytuł filmu: ")
             movie_year = int(input("Wpisz rok produkcji filmu: "))
             movie_rating = float(input("Wpisz ocenę filmu: "))
-            new_movie= Movie(your_movie_number,movie_title,movie_year,movie_rating)
+            movie_price = float(input("Wpisz cenę filmu: "))
+            new_movie= Movie(your_movie_number,movie_title,movie_year,movie_rating, movie_price)
             system.add(new_movie)
             return f'Film {movie_title} został dodany do wypożyczalni'
     if your_choice==4:
@@ -181,6 +189,7 @@ def show():
         print("1.Filtrowanie przez rok produkcji")
         print("2.Filtrowanie przez oceny")
         print("3.Filtrowanie przez rok produkcji i oceny")
+        print("4.Filtrowanie przez cene")
         your_filter = int(input("Wybierz swój rodzaj filtru: "))
         if your_filter == 1:
             oldest_year_of_movie=int(input("Wpisz najstarsy rok produkcji filmu: "))
@@ -214,8 +223,15 @@ def show():
                     if int(movie_data[2]) >= oldest_year_of_movie and int(movie_data[2]) <= newest_year_of_movie and float(movie_data[3])>=lowest_note_of_movie and float(movie_data[3])<=highest_note_of_movie:
                         list_of_movie[movie_data[0]]=movie_data[1]
                 return list_of_movie
-
-
+        if your_filter == 4:
+            max_price = float(input("Wpisz cenę maksymalną: "))
+            list_of_movie={}
+            with open('movies.db','r') as read_handler:
+                for line in read_handler:
+                    movie_data = line.split("|")
+                    if float(movie_data[4]) <= max_price:
+                        list_of_movie[movie_data[0]]=movie_data[1]
+                return list_of_movie
         else:
             print ('Nie ma takiego filtru')
             time.sleep(3)
