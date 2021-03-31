@@ -62,7 +62,7 @@ class RentalSystem:
     def __init__(self, movie_db, rent_db, user_db):
         self._rent_db = rent_db
         self._movie_db = movie_db
-        self._user.db = user_db
+        self._user_db = user_db
 
     def get_movies(self, callback: Callable) -> List[Movie]:
         with open(self._movie_db) as read_handler:
@@ -133,39 +133,37 @@ class UserSystem:
     def exists(self, user_nickname):
         with open(self._users_db) as read_handler:
             for line in read_handler:
-                if line.split("|")[0] == user_nickname:
+                if str(line.split('|')[0]) == user_nickname:
                     return True
-                return False
+        return False
 
     def correct_password(self, user_password):
         with open(self._users_db) as read_handler:
             for line in read_handler:
                 if line.split("|")[1] == user_password:
                     return True
-                return line.split("|")[1]
+        return line.split("|")[1]
 
-    def check_account(self, user_nickname):
+class MoneyClass:
+    def __init__(self, users_db, movies_db):
+        self._users_db = users_db
+        self._movies_db = movies_db
+    def get_movie_price(self, movie_id):
+        with open(self._movies_db) as read_handler:
+            for line in read_handler:
+                if float(line.split("|")[0]) == float(movie_id):
+                    return float(line.split("|")[4])
+        return 'Brak filmu z tym id w bazie'
+    def get_user_money(self, user_mail):
         with open(self._users_db) as read_handler:
-            for line in read_handler:
-                if line.split("|")[0] == user_nickname:
+            for line in read_handler.readlines():
+                if str(line.split("|")[0]) == str(user_mail):
                     return float(line.split("|")[2])
-                return False
-    def enough_money(self, user_nickname, movie_title):
-        #sprawdzanie ceny filmu
-        price=0
-        with open ('movies.db') as read_handler:
-            for line in read_handler:
-                if line.split("|")[1] == movie_title:
-                    price=float(line.split("|")[4])
-        my_money=0
-        #sprawdzanie stanu konta użytkownika
-        with open (self._users_db) as read_handler:
-            for line in read_handler:
-                if line.split("|")[0] == user_nickname:
-                    my_money = float(line.split("|")[2])
-                    if my_money >= price:
-                        return my_money-price
-                    return f'Brakuje Ci {abs(my_money-price)} złoty, aby móc wypożyczyć ten film'
+        return "Coś poszło nie tak..."
+
+
+
+
 def bad_login():
     print("Co chcesz zrobić ?")
     print("1.Próba ponownego logowania")
@@ -185,6 +183,7 @@ def bad_login():
 
 def menu():
     system = RentalSystem('movies.db', 'rents.db')
+    user_system = UserSystem('system_users.db','movies.db')
     print("1.Wypożyczenie filmu")
     print("2.Oddanie filmu")
     print("3.Dodanie filmu do wypożyczalni")
@@ -309,6 +308,9 @@ def show():
 
 
 if __name__ == '__main__':
-    user_system = UserSystem('system_users.db','movies.db')
-    my_user=User('matkac98@gmail.com','Perla1998!',99.90)
-    print(user_system.enough_money(my_user.nickname,'Harry Potter'))
+    money_class=MoneyClass('system_users.db','movies.db')
+    ren_sys=RentalSystem('movies.db','rents.db','system_users.db')
+    user_system=UserSystem('system_users.db','movies.db')
+    print(money_class.get_movie_price(3))
+    print(user_system.exists("matkac98@gmail.com"))
+    print(user_system.exists("kacprzak.micheal@gmail.com"))
