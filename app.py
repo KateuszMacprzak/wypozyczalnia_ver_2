@@ -59,9 +59,10 @@ class User:
 
 
 class RentalSystem:
-    def __init__(self, movie_db, rent_db):
+    def __init__(self, movie_db, rent_db, user_db):
         self._rent_db = rent_db
         self._movie_db = movie_db
+        self._user.db = user_db
 
     def get_movies(self, callback: Callable) -> List[Movie]:
         with open(self._movie_db) as read_handler:
@@ -111,8 +112,9 @@ class RentalSystem:
 
 
 class UserSystem:
-    def __init__(self, users_db):
+    def __init__(self, users_db, movie_db):
         self._users_db = users_db
+        self._movie_db = movie_db
 
     def add(self, user: User):
         with open(self._users_db, 'a') as append_handler:
@@ -148,7 +150,14 @@ class UserSystem:
                 if line.split("|")[0] == user_nickname:
                     return float(line.split("|")[2])
                 return False
-
+    def enough_money(self, user_nickname, movie_price:float):
+        my_money=0
+        #sprawdzanie stanu konta użytkownika
+        with open (self._users_db) as read_handler:
+            for line in read_handler:
+                if line.split("|")[0] == user_nickname:
+                    my_money = float(line.split("|")[2])
+                    return my_money-movie_price
 def bad_login():
     print("Co chcesz zrobić ?")
     print("1.Próba ponownego logowania")
@@ -292,7 +301,6 @@ def show():
 
 
 if __name__ == '__main__':
-    user_system = UserSystem('system_users.db')
+    user_system = UserSystem('system_users.db','movies.db')
     my_user=User('matkac98@gmail.com','Perla1998!',99.90)
-    user_system.add(my_user)
-    print(user_system.check_account(my_user.nickname))
+    print(user_system.enough_money(my_user.nickname,15.0))
