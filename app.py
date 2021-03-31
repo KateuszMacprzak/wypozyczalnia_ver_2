@@ -150,14 +150,22 @@ class UserSystem:
                 if line.split("|")[0] == user_nickname:
                     return float(line.split("|")[2])
                 return False
-    def enough_money(self, user_nickname, movie_price:float):
+    def enough_money(self, user_nickname, movie_title):
+        #sprawdzanie ceny filmu
+        price=0
+        with open ('movies.db') as read_handler:
+            for line in read_handler:
+                if line.split("|")[1] == movie_title:
+                    price=float(line.split("|")[4])
         my_money=0
         #sprawdzanie stanu konta użytkownika
         with open (self._users_db) as read_handler:
             for line in read_handler:
                 if line.split("|")[0] == user_nickname:
                     my_money = float(line.split("|")[2])
-                    return my_money-movie_price
+                    if my_money >= price:
+                        return my_money-price
+                    return f'Brakuje Ci {abs(my_money-price)} złoty, aby móc wypożyczyć ten film'
 def bad_login():
     print("Co chcesz zrobić ?")
     print("1.Próba ponownego logowania")
@@ -303,4 +311,4 @@ def show():
 if __name__ == '__main__':
     user_system = UserSystem('system_users.db','movies.db')
     my_user=User('matkac98@gmail.com','Perla1998!',99.90)
-    print(user_system.enough_money(my_user.nickname,15.0))
+    print(user_system.enough_money(my_user.nickname,'Harry Potter'))
