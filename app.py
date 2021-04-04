@@ -1,5 +1,6 @@
 import time
 import sys
+import os
 from typing import List, Callable
 
 my_users = {'matkac98@gmail.com': 'Perla1998!', 'natjoz@gmail.com': 'byleco', 'a': 'b'}
@@ -70,7 +71,7 @@ class RentalSystem:
 
     def add(self, movie: Movie):
         with open(self._movie_db, 'a') as append_handler:
-            append_handler.write(f'{movie.id}|{movie.title}|{movie.year}|{movie.rating}\n')
+            append_handler.write(f'{movie.id}|{movie.title}|{movie.year}|{movie.rating}|{movie.price}\n')
 
     def remove(self, movie_id: int):
         with open(self._movie_db) as read_handler:
@@ -110,6 +111,14 @@ class RentalSystem:
         with open(self._rent_db, 'a') as append_handler:
             append_handler.write(f'{movie_id}\n')
 
+    def get_movie_price(self, movie_id:int)->float:
+        with open(self._movie_db) as read_handler:
+            for line in read_handler:
+                if int(line.split("|")[0]) == movie_id:
+                    return float(line.split("|")[4])
+        return "System nie może znalezc filmu o podanym ID"
+
+
 
 class UserSystem:
     def __init__(self, users_db, movie_db):
@@ -142,27 +151,14 @@ class UserSystem:
             for line in read_handler:
                 if line.split("|")[1] == user_password:
                     return True
-        return line.split("|")[1]
+        return False
 
-class MoneyClass:
-    def __init__(self, users_db, movies_db):
-        self._users_db = users_db
-        self._movies_db = movies_db
-    def get_movie_price(self, movie_id):
-        with open(self._movies_db) as read_handler:
-            for line in read_handler:
-                if float(line.split("|")[0]) == float(movie_id):
-                    return float(line.split("|")[4])
-        return 'Brak filmu z tym id w bazie'
-    def get_user_money(self, user_mail):
+    def get_user_money(self, user_email):
         with open(self._users_db) as read_handler:
-            for line in read_handler.readlines():
-                if str(line.split("|")[0]) == str(user_mail):
+            for line in read_handler:
+                if line.split("|")[0]==user_email:
                     return float(line.split("|")[2])
-        return "Coś poszło nie tak..."
-
-
-
+        return "Wystąpił błąd, system nie może znalezc usera o podanym emailu..."
 
 def bad_login():
     print("Co chcesz zrobić ?")
@@ -181,8 +177,9 @@ def bad_login():
         sys.exit(0)
 
 
-def menu():
-    system = RentalSystem('movies.db', 'rents.db')
+def menu(user:User):
+    rental_system = RentalSystem('movies.db','rents.db','system_users.db')
+    system = RentalSystem('movies.db','rents.db','system_users.db')
     user_system = UserSystem('system_users.db','movies.db')
     print("1.Wypożyczenie filmu")
     print("2.Oddanie filmu")
@@ -193,26 +190,34 @@ def menu():
     your_choice = int(input("Wybór: "))
     if your_choice == 1:
         print("Wybierz 0 jeśli chcesz się cofnąć do menu")
+        print(show())
         your_movie_number = int(input("Wpisz numer katalogu filmu jaki chcesz wypożyczyć: "))
         if your_movie_number == 0:
-            print(menu())
-        else:
+            print(menu(user))
+        if your_movie_number != 0 and user_system.get_user_money(user.nickname)>=rental_system.get_movie_price(your_movie_number):
             system.rent(your_movie_number)
-            return f'Film o numerze katalogowym {your_movie_number} został wypożyczony'
-
+            with open('system_users.db') as read_handler:
+                for line in read_handler:
+                    if line.split("|")[0] == user.nickname:
+                        new_user=f"{line.split('|')[0]}|{line.split('|')[1]}|{round(user_system.get_user_money(user.nickname)-rental_system.get_movie_price(your_movie_number),2)}"
+            #user_system.remove(user.nickname)
+            #user_system.add(new_user)
+            #return f'Film o numerze katalogowym {your_movie_number} został wypożyczony. Z konta znika {rental_system.get_movie_price(your_movie_number)}. Na koncie pozostało {round(user_system.get_user_money(user.nickname)-rental_system.get_movie_price(your_movie_number),2)}'
+        return "Wystąpił błąd"
     if your_choice == 2:
         print("Wybierz 0 jeśli chcesz się cofnąć do menu")
-        your_movie_number = int(input("Wpisz numer katalogu filmu jaki chcesz zwrócić: "))
-        if your_movie_number == 0:
-            print(menu())
+        your_movie_number2 = int(input("Wpisz numer katalogu filmu jaki chcesz zwrócić: "))
+        if your_movie_number2 == 0:
+            print(menu(user))
         else:
-            system.give_back(your_movie_number)
-            return f'Film o numerze katalogowym {your_movie_number} został zwrócony !'
+            system.give_back(your_movie_number2)
+            print (f'Film o numerze katalogowym {your_movie_number2} został zwrócony !')
+            print (menu(user))
     if your_choice == 3:
         print("Wybierz 0 jeśli chcesz się cofnąć do menu")
         your_movie_number = int(input("Wpisz numer katalogu pod jakim ma być dodany film: "))
         if your_movie_number == 0:
-            print(menu())
+            print(menu(user))
         else:
             movie_title = input("Wpisz tytuł filmu: ")
             movie_year = int(input("Wpisz rok produkcji filmu: "))
@@ -220,15 +225,17 @@ def menu():
             movie_price = float(input("Wpisz cenę filmu: "))
             new_movie = Movie(your_movie_number, movie_title, movie_year, movie_rating, movie_price)
             system.add(new_movie)
-            return f'Film {movie_title} został dodany do wypożyczalni'
+            print (f'Film {movie_title} został dodany do wypożyczalni')
+            print(menu(user))
     if your_choice == 4:
         print("Wybierz 0 jeśli chcesz się cofnąć do menu")
         your_movie_number = int(input("Wpisz numer katalogu filmu jaki ma zostać usunięty: "))
         if your_movie_number == 0:
-            print(menu())
+            print(menu(user))
         else:
             system.remove(your_movie_number)
-            return f'Film o numerze {your_movie_number} został usunięty '
+            print (f'Film o numerze {your_movie_number} został usunięty ')
+            print(menu(user))
     if your_choice == 5:
         print(show())
     if your_choice == 6:
@@ -301,6 +308,8 @@ def show():
                 movie_data = line.split("|")
                 list_of_movie.append(movie_data[1])
             return list_of_movie
+    if filtr == "0":
+        return menu(user.nickname)
     else:
         print("To jest za duży numer, spróbuj ponownie !")
         time.sleep(3)
@@ -308,9 +317,5 @@ def show():
 
 
 if __name__ == '__main__':
-    money_class=MoneyClass('system_users.db','movies.db')
-    ren_sys=RentalSystem('movies.db','rents.db','system_users.db')
-    user_system=UserSystem('system_users.db','movies.db')
-    print(money_class.get_movie_price(3))
-    print(user_system.exists("matkac98@gmail.com"))
-    print(user_system.exists("kacprzak.micheal@gmail.com"))
+    user=User('matkac98@gmail.com','matkac98@gmail.com',98.32)
+    print(menu(user))
