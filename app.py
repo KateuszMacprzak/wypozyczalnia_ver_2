@@ -108,12 +108,14 @@ class RentalSystem:
     def rent(self, movie_id: int, person):
         if not self.exists(movie_id):
             raise ValueError(f'Movie {movie_id} does not exist')
-        with open(self._rent_db) as append_handler:
-            for line in append_handler:
-                if int(line.split(":")[0]) == int(movie_id):
-                    return f"This movie is actually rent by {line.split(':')[1]}"
-        with open(self._rent_db,'a') as append_handler:
-            append_handler.write(f'{movie_id}:{person}\n')
+        if self.exists(movie_id):
+            with open(self._rent_db,'r') as read_handler:
+                for line in read_handler:
+                    if str(line.split(":")[0]) == str(movie_id):
+                        return f"This movie is actually rent by {line.split(':')[1]}"
+                    if str(line.split(":")[0]) != str(movie_id):
+                        with open(self._rent_db,'a') as append_handler:
+                            append_handler.write(f'{movie_id}:{person}\n')
 
     def get_movie_price(self, movie_id:int)->float:
         with open(self._movie_db) as read_handler:
@@ -200,7 +202,7 @@ def menu(user:User):
         your_movie_number = int(input("Wpisz numer katalogu filmu jaki chcesz wypożyczyć: "))
         if your_movie_number == 0:
             print(menu(user))
-        if your_movie_number != 0 and user_system.get_user_money(user.nickname)>=rental_system.get_movie_price(your_movie_number):
+        if your_movie_number == 1 and user_system.get_user_money(user.nickname)>=rental_system.get_movie_price(your_movie_number):
             system.rent(your_movie_number,user.nickname)
             with open('system_users.db') as read_handler:
                 for line in read_handler:
@@ -208,7 +210,8 @@ def menu(user:User):
                         new_user=User(line.split("|")[0],line.split("|")[1],round(user_system.get_user_money(user.nickname)-rental_system.get_movie_price(your_movie_number),2))
             user_system.remove(user.nickname)
             user_system.add(new_user)
-            print(f'Film o numerze katalogowym {your_movie_number} został wypożyczony. Z konta znika {rental_system.get_movie_price(your_movie_number)}. Na koncie pozostało {round(user_system.get_user_money(user.nickname)-rental_system.get_movie_price(your_movie_number),2)}')
+            print(f'Film o numerze katalogowym {your_movie_number} został wypożyczony. Z konta znika {rental_system.get_movie_price(your_movie_number)}. Na koncie pozostało {user_system.get_user_money(user.nickname)}')
+            time.sleep(3)
             print(menu(user))
         print (f"Brak wystarczających środków na koncie. Zasil konto kwotą {round(rental_system.get_movie_price(your_movie_number)-user_system.get_user_money(user.nickname),2)}")
         time.sleep(3)
@@ -319,11 +322,11 @@ def show():
             time.sleep(3)
             return show()
     if filtr == "2" or filtr == "nie":
-        list_of_movie = []
+        list_of_movie = {}
         with open('movies.db', 'r') as read_handler:
             for line in read_handler:
                 movie_data = line.split("|")
-                list_of_movie.append(movie_data[1])
+                list_of_movie[movie_data[0]]=movie_data[1]
             return list_of_movie
     if filtr == "0":
         return menu(user.nickname)
@@ -334,6 +337,8 @@ def show():
 
 
 if __name__ == '__main__':
-    user=User('matkac98@gmail.com','matkac98@gmail.com',98.32)
+    user=User('matkac98@gmail.com','Perla1998!',98.32)
+    user_system=UserSystem('system_users.db','movies.db')
+    user_system.add(user)
     ren_sys=RentalSystem('movies.db','rents.db','system_users.db')
     print(menu(user))
