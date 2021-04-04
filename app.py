@@ -3,8 +3,6 @@ import sys
 import os
 from typing import List, Callable
 
-my_users = {'matkac98@gmail.com': 'Perla1998!', 'natjoz@gmail.com': 'byleco', 'a': 'b'}
-
 
 class Movie:
     def __init__(self, id, title, year, rating, price):
@@ -39,7 +37,7 @@ class Movie:
 
 
 class User:
-    def __init__(self, nickname, password, account):
+    def __init__(self, nickname, password, account=None):
         self._nickname = nickname
         self._password = password
         self._account = account
@@ -173,11 +171,23 @@ def bad_login():
     print("3.Wyjście z programu")
     bad_login = int(input("Wybierz: "))
     if bad_login == 1:
-        user_system = UserSystem('system_users.db')
+        user_system = UserSystem('system_users.db','movies.db')
         print(user_system.exists())
     if bad_login == 2:
-        pass
-
+        user_system = UserSystem('system_users.db','movies.db')
+        new_email=input("Enter new email adress: ")
+        new_password=input("Enter your password: ")
+        new_money_on_account=0.00
+        adding_new_one=User(new_email,new_password,new_money_on_account)
+        user_system.add(adding_new_one)
+        print("Wymane ponowne zalogowanie")
+        e_mail = input("Enter your e-mail adress: ")
+        password = input("Enter your password: ")
+        user=User(e_mail,password)
+        print(menu(user))
+        if user_system.exists(user.nickname)==False or user_system.correct_password(user.password)==False:
+            print("Nie udało się zalogować")
+            print(bad_login())
     if bad_login == 3:
         print("ZAPRASZAMY PONOWNIE")
         sys.exit(0)
@@ -213,7 +223,26 @@ def menu(user:User):
             print(f'Film o numerze katalogowym {your_movie_number} został wypożyczony. Z konta znika {rental_system.get_movie_price(your_movie_number)}. Na koncie pozostało {user_system.get_user_money(user.nickname)}')
             time.sleep(3)
             print(menu(user))
-        print (f"Brak wystarczających środków na koncie. Zasil konto kwotą {round(rental_system.get_movie_price(your_movie_number)-user_system.get_user_money(user.nickname),2)}")
+        if your_movie_number == 1 and user_system.get_user_money(user.nickname) < rental_system.get_movie_price(your_movie_number):
+            print (f"Brak wystarczających środków na koncie. Zasil konto kwotą {round(rental_system.get_movie_price(your_movie_number)-user_system.get_user_money(user.nickname),2)}")
+            print("WYBIERZ JEDNĄ Z OPCJI")
+            print("1.Zasil konto")
+            print("2.Wróc do menu")
+            print("3.Opuść program")
+            no_enough_money=int(input("Wybór: "))
+            if no_enough_money==1:
+                add_money=float(input("Wpisz kwotę jaką chcesz zasilić konto: "))
+                with open('system_users.db') as read_handler:
+                    for line in read_handler:
+                        if line.split("|")[0] == user.nickname:
+                            new_user = User(line.split("|")[0], line.split("|")[1], round(user_system.get_user_money(user.nickname) + add_money, 2))
+                user_system.remove(user.nickname)
+                user_system.add(new_user)
+            if no_enough_money==2:
+                print(menu(user))
+            if no_enough_money==3:
+                print("ZAPRASZAMY PONOWNIE")
+                sys.exit(0)
         time.sleep(3)
         print(menu(user))
     if your_choice == 2:
@@ -337,8 +366,14 @@ def show():
 
 
 if __name__ == '__main__':
-    user=User('matkac98@gmail.com','Perla1998!',98.32)
     user_system=UserSystem('system_users.db','movies.db')
-    user_system.add(user)
-    ren_sys=RentalSystem('movies.db','rents.db','system_users.db')
-    print(menu(user))
+    print("WELCOME IN MOVIE RENTAL")
+    time.sleep(3)
+    e_mail=input("Enter your e-mail adress: ")
+    password=input("Enter your password: ")
+    user=User(e_mail,password)
+    if user_system.exists(user.nickname)==False or user_system.correct_password(user.password)==False:
+        print("Nie udało się zalogować")
+        print(bad_login())
+    else:
+        print(menu(user))
