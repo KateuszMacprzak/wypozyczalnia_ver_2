@@ -224,7 +224,11 @@ def menu(user:User):
             print (menu(user))
     if your_choice == 3:
         print("Wybierz 0 jeśli chcesz się cofnąć do menu")
-        your_movie_number = int(input("Wpisz numer katalogu pod jakim ma być dodany film: "))
+        my_list_len=0
+        with open('movies.db') as read_handler:
+            for line in read_handler:
+                my_list_len+=1
+        your_movie_number = my_list_len+1
         if your_movie_number == 0:
             print(menu(user))
         else:
