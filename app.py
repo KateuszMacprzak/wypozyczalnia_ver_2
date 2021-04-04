@@ -90,8 +90,8 @@ class RentalSystem:
 
     def is_rented(self, movie_id: int) -> bool:
         with open(self._rent_db) as read_handler:
-            for rent_id in read_handler:
-                if int(rent_id) == movie_id:
+            for line in read_handler:
+                if int(line.split(":")[0]) == movie_id:
                     return True
         return False
 
@@ -101,15 +101,19 @@ class RentalSystem:
         with open(self._rent_db, 'r') as read_handler:
             rented_movies = read_handler.readlines()
         with open(self._rent_db, 'w') as write_handler:
-            for rented_id in rented_movies:
-                if int(rented_id) != movie_id:
-                    write_handler.write(rented_id)
+            for line in rented_movies:
+                if line.split(":")[0] != movie_id:
+                    write_handler.write(" ")
 
-    def rent(self, movie_id: int):
+    def rent(self, movie_id: int, person):
         if not self.exists(movie_id):
             raise ValueError(f'Movie {movie_id} does not exist')
-        with open(self._rent_db, 'a') as append_handler:
-            append_handler.write(f'{movie_id}\n')
+        with open(self._rent_db) as append_handler:
+            for line in append_handler:
+                if int(line.split(":")[0]) == int(movie_id):
+                    return f"This movie is actually rent by {line.split(':')[1]}"
+        with open(self._rent_db,'a') as append_handler:
+            append_handler.write(f'{movie_id}:{person}\n')
 
     def get_movie_price(self, movie_id:int)->float:
         with open(self._movie_db) as read_handler:
@@ -186,7 +190,9 @@ def menu(user:User):
     print("3.Dodanie filmu do wypożyczalni")
     print("4.Usunięcie filmu z wypożyczalni")
     print("5.Powrót do filtrowanie")
-    print("6.Wyjście z programu")
+    print("6.Sprawdzenie stanu konta")
+    print("7.Wyjście z programu")
+
     your_choice = int(input("Wybór: "))
     if your_choice == 1:
         print("Wybierz 0 jeśli chcesz się cofnąć do menu")
@@ -195,15 +201,18 @@ def menu(user:User):
         if your_movie_number == 0:
             print(menu(user))
         if your_movie_number != 0 and user_system.get_user_money(user.nickname)>=rental_system.get_movie_price(your_movie_number):
-            system.rent(your_movie_number)
+            system.rent(your_movie_number,user.nickname)
             with open('system_users.db') as read_handler:
                 for line in read_handler:
                     if line.split("|")[0] == user.nickname:
-                        new_user=f"{line.split('|')[0]}|{line.split('|')[1]}|{round(user_system.get_user_money(user.nickname)-rental_system.get_movie_price(your_movie_number),2)}"
-            #user_system.remove(user.nickname)
-            #user_system.add(new_user)
-            #return f'Film o numerze katalogowym {your_movie_number} został wypożyczony. Z konta znika {rental_system.get_movie_price(your_movie_number)}. Na koncie pozostało {round(user_system.get_user_money(user.nickname)-rental_system.get_movie_price(your_movie_number),2)}'
-        return "Wystąpił błąd"
+                        new_user=User(line.split("|")[0],line.split("|")[1],round(user_system.get_user_money(user.nickname)-rental_system.get_movie_price(your_movie_number),2))
+            user_system.remove(user.nickname)
+            user_system.add(new_user)
+            print(f'Film o numerze katalogowym {your_movie_number} został wypożyczony. Z konta znika {rental_system.get_movie_price(your_movie_number)}. Na koncie pozostało {round(user_system.get_user_money(user.nickname)-rental_system.get_movie_price(your_movie_number),2)}')
+            print(menu(user))
+        print (f"Brak wystarczających środków na koncie. Zasil konto kwotą {round(rental_system.get_movie_price(your_movie_number)-user_system.get_user_money(user.nickname),2)}")
+        time.sleep(3)
+        print(menu(user))
     if your_choice == 2:
         print("Wybierz 0 jeśli chcesz się cofnąć do menu")
         your_movie_number2 = int(input("Wpisz numer katalogu filmu jaki chcesz zwrócić: "))
@@ -239,6 +248,10 @@ def menu(user:User):
     if your_choice == 5:
         print(show())
     if your_choice == 6:
+        print (user_system.get_user_money(user.nickname))
+        time.sleep(3)
+        print(menu(user))
+    if your_choice == 7:
         print("ZAPRASZAMY PONOWNIE")
         sys.exit(0)
 
@@ -318,4 +331,5 @@ def show():
 
 if __name__ == '__main__':
     user=User('matkac98@gmail.com','matkac98@gmail.com',98.32)
+    ren_sys=RentalSystem('movies.db','rents.db','system_users.db')
     print(menu(user))
