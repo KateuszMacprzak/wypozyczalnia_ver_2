@@ -1,10 +1,9 @@
 import time
 import sys
 import os
+import random
+from math import fabs
 from typing import List, Callable
-
-my_users = {'matkac98@gmail.com': 'Perla1998!', 'natjoz@gmail.com': 'byleco', 'a': 'b'}
-
 
 class Movie:
     def __init__(self, id, title, year, rating, price):
@@ -39,7 +38,7 @@ class Movie:
 
 
 class User:
-    def __init__(self, nickname, password, account):
+    def __init__(self, nickname, password, account=0):
         self._nickname = nickname
         self._password = password
         self._account = account
@@ -166,21 +165,34 @@ class UserSystem:
                     return float(line.split("|")[2])
         return "Wystąpił błąd, system nie może znalezc usera o podanym emailu..."
 
-def bad_login():
+def bad_login_fun():
     print("Co chcesz zrobić ?")
     print("1.Próba ponownego logowania")
     print("2.Dodanie nowego użytkownika")
     print("3.Wyjście z programu")
     bad_login = int(input("Wybierz: "))
     if bad_login == 1:
-        user_system = UserSystem('system_users.db')
-        print(user_system.exists())
+        nick_name = input("Enter your nickname: ")
+        password_ = input("Enter your password: ")
+        user_2=User(nick_name,password_)
+        user_system = UserSystem('system_users.db','movies.db')
+        if user_system.exists(user_2.nickname) == False:
+            print('Brak użytkownika w bazie danych')
+            print(bad_login_fun())
+        else:
+            print(menu(user_2))
     if bad_login == 2:
-        pass
+        nick_name = input("Enter your nickname: ")
+        password_ = input("Enter your password: ")
+        user = User(nick_name, password_)
+        user_system = UserSystem('system_users.db', 'movies.db')
+        user_system.add(user)
+        print(show())
+        print(menu(user))
 
     if bad_login == 3:
         print("ZAPRASZAMY PONOWNIE")
-        sys.exit(0)
+        sys.exit()
 
 
 def menu(user:User):
@@ -192,8 +204,9 @@ def menu(user:User):
     print("3.Dodanie filmu do wypożyczalni")
     print("4.Usunięcie filmu z wypożyczalni")
     print("5.Powrót do filtrowanie")
-    print("6.Sprawdzenie stanu konta")
-    print("7.Wyjście z programu")
+    print("6.Doładowanie konta")
+    print("7.Sprawdzenie stanu konta")
+    print("8.Wyjście z programu")
 
     your_choice = int(input("Wybór: "))
     if your_choice == 1:
@@ -203,7 +216,7 @@ def menu(user:User):
         if your_movie_number == 0:
             print(menu(user))
         if your_movie_number == 1 and user_system.get_user_money(user.nickname)>=rental_system.get_movie_price(your_movie_number):
-            system.rent(your_movie_number,user.nickname)
+
             with open('system_users.db') as read_handler:
                 for line in read_handler:
                     if line.split("|")[0] == user.nickname:
@@ -211,9 +224,9 @@ def menu(user:User):
             user_system.remove(user.nickname)
             user_system.add(new_user)
             print(f'Film o numerze katalogowym {your_movie_number} został wypożyczony. Z konta znika {rental_system.get_movie_price(your_movie_number)}. Na koncie pozostało {user_system.get_user_money(user.nickname)}')
-            time.sleep(3)
+            system.rent(your_movie_number, user.nickname)
             print(menu(user))
-        print (f"Brak wystarczających środków na koncie. Zasil konto kwotą {round(rental_system.get_movie_price(your_movie_number)-user_system.get_user_money(user.nickname),2)}")
+        print (f"Brak wystarczających środków na koncie. Zasil konto kwotą {round(fabs(rental_system.get_movie_price(your_movie_number)-user_system.get_user_money(user.nickname)),2)}")
         time.sleep(3)
         print(menu(user))
     if your_choice == 2:
@@ -255,10 +268,27 @@ def menu(user:User):
     if your_choice == 5:
         print(show())
     if your_choice == 6:
+        money=float(input("Jaką kwotą chcesz zasilić swoje konto: "))
+        with open ('system_users.db') as read_handler:
+            users = read_handler.readlines()
+        with open ('system_users.db','w') as write_handler:
+            for line in users:
+                if line.split("|")[0] != user.nickname:
+                    write_handler.write(line)
+                if line.split("|")[0] == user.nickname:
+                    user_money=float(line.split("|")[2])
+                else:
+                    write_handler.write("")
+        with open ('system_users.db','a') as append_handler:
+            append_handler.write(f'{user.nickname}|{user.password}|{float(user_money+money)}\n')
+        print(menu(user))
+
+
+    if your_choice == 7:
         print (user_system.get_user_money(user.nickname))
         time.sleep(3)
         print(menu(user))
-    if your_choice == 7:
+    if your_choice == 8:
         print("ZAPRASZAMY PONOWNIE")
         sys.exit(0)
 
@@ -337,6 +367,11 @@ def show():
 
 
 if __name__ == '__main__':
-    user=User('matkac98@gmail.com','Perla1998!',98.32)
-    ren_sys=RentalSystem('movies.db','rents.db','system_users.db')
-    ren_sys.rent(3,user.nickname)
+    print("Hello world")
+    email=input("Enter your e-mail adress: ")
+    password=input("Enter your password: ")
+    user=User(email,password)
+    user_system=UserSystem('system_users.db','movies.db')
+    if user_system.exists(user.nickname):
+        print(menu(user))
+    print(bad_login_fun())
